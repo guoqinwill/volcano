@@ -43,6 +43,8 @@ const (
 	PluginName = "numa-aware"
 	// NumaTopoWeight indicates the weight of numa-aware plugin.
 	NumaTopoWeight = "weight"
+	// Numa-aware predicate failed
+	NodeNumaPolicyMismatch = "the NUMA policy of the pod does not match that of the node"
 )
 
 type numaPlugin struct {
@@ -122,7 +124,9 @@ func (pp *numaPlugin) OnSessionOpen(ssn *framework.Session) {
 		}
 
 		if fit, err := filterNodeByPolicy(task, node, pp.nodeResSets); !fit {
-			return predicateStatus, err
+			klog.V(3).Infof("pod (%s/%s) with plugin %s predicate failed on node %s, fit is %v, err: %v",
+				task.Namespace, task.Name, pp.Name(), node.Name, fit, err)
+			return predicateStatus, fmt.Errorf("plugin %s predicates failed, because of %s", pp.Name(), NodeNumaPolicyMismatch)
 		}
 
 		resNumaSets := pp.nodeResSets[node.Name].Clone()
@@ -137,8 +141,9 @@ func (pp *numaPlugin) OnSessionOpen(ssn *framework.Session) {
 				numaStatus.Reason = fmt.Sprintf("plugin %s predicates failed for task %s container %s on node %s",
 					pp.Name(), task.Name, container.Name, node.Name)
 				predicateStatus = append(predicateStatus, numaStatus)
-				return predicateStatus, fmt.Errorf("plugin %s predicates failed for task %s container %s on node %s",
-					pp.Name(), task.Name, container.Name, node.Name)
+				klog.V(3).Infof("plugin %s predicates failed for task (%s/%s) container %s on node %s",
+					pp.Name(), task.Namespace, task.Name, container.Name, node.Name)
+				return predicateStatus, fmt.Errorf("plugin %s predicates failed, because of %s", pp.Name(), NodeNumaPolicyMismatch)
 			}
 
 			klog.V(4).Infof("[numaaware] hits for task %s container '%v': %v on node %s, besthit: %v",
@@ -219,15 +224,20 @@ func filterNodeByPolicy(task *api.TaskInfo, node *api.NodeInfo, nodeResSets map[
 		}
 	} else {
 		if node.NumaSchedulerInfo == nil {
+			klog.V(3).Infof("pod (%s/%s): numa scheduler information is nil for node %s", task.Namespace, task.Name, node.Name)
 			return false, nil
 		}
 
 		if node.NumaSchedulerInfo.Policies[nodeinfov1alpha1.CPUManagerPolicy] != "static" {
+			klog.V(3).Infof("The pod (%s/%s) QoS does not match the node %s CPU policy, pod QoS is %v, node cpu policy is %v",
+				task.Namespace, task.Name, node.Name, v1qos.GetPodQOS(task.Pod), node.NumaSchedulerInfo.Policies[nodeinfov1alpha1.CPUManagerPolicy])
 			return false, nil
 		}
 
 		if (node.NumaSchedulerInfo.Policies[nodeinfov1alpha1.TopologyManagerPolicy] == "none") ||
 			(node.NumaSchedulerInfo.Policies[nodeinfov1alpha1.TopologyManagerPolicy] == "") {
+			klog.V(3).Infof("The numa topology policy is not correctly set for the node %s, pod is (%s/%s), node numa topology policy is %v",
+				node.Name, task.Namespace, task.Name, node.NumaSchedulerInfo.Policies[nodeinfov1alpha1.TopologyManagerPolicy])
 			return false, nil
 		}
 	}
