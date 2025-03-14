@@ -42,6 +42,12 @@ type Framework struct {
 	informerFactory informers.SharedInformerFactory
 }
 
+func (f *Framework) Activate(logger klog.Logger, pods map[string]*v1.Pod) {}
+
+func (f *Framework) SharedDRAManager() framework.SharedDRAManager {
+	return nil
+}
+
 var _ framework.Handle = &Framework{}
 
 // SnapshotSharedLister returns the scheduler's SharedLister of the latest NodeInfo
