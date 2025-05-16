@@ -2,6 +2,7 @@
 {{ $scheduler_affinity := or .Values.custom.scheduler_affinity .Values.custom.default_affinity }}
 {{ $scheduler_tolerations := or .Values.custom.scheduler_tolerations .Values.custom.default_tolerations }}
 {{ $scheduler_sc := or .Values.custom.scheduler_sc .Values.custom.default_sc }}
+{{ $scheduler_main_csc := or .Values.custom.scheduler_main_csc .Values.custom.default_csc }}
 {{ $scheduler_ns := or .Values.custom.scheduler_ns .Values.custom.default_ns }}
 apiVersion: v1
 kind: ConfigMap
@@ -155,6 +156,9 @@ spec:
             - --scheduler-conf=/volcano.scheduler/{{base .Values.basic.scheduler_config_file}}
             - --enable-healthz=true
             - --enable-metrics=true
+            {{- if .Values.custom.scheduler_pprof_enable }}
+            - --enable-pprof=true
+            {{- end }}
             - --leader-elect={{ .Values.custom.leader_elect_enable }}
             {{- if .Values.custom.leader_elect_enable }}
             - --lock-object-namespace={{ .Release.Namespace }}
@@ -170,6 +174,10 @@ spec:
               mountPath: /volcano.scheduler
             - name: klog-sock
               mountPath: /tmp/klog-socks
+          {{- if $scheduler_main_csc }}
+          securityContext:
+            {{- toYaml $scheduler_main_csc | nindent 12 }}
+          {{- end }}
       volumes:
         - name: scheduler-config
           configMap:
