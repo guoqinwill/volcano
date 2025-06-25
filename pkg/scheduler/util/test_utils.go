@@ -35,6 +35,7 @@ import (
 	k8sframework "k8s.io/kubernetes/pkg/scheduler/framework"
 
 	schedulingv1beta1 "volcano.sh/apis/pkg/apis/scheduling/v1beta1"
+
 	"volcano.sh/volcano/pkg/scheduler/api"
 )
 
@@ -673,4 +674,18 @@ func ConvertNodeInfoSliceToInterface(m map[string]*k8sframework.NodeInfo) map[st
 		out[k] = v.Snapshot()
 	}
 	return out
+}
+
+// BuildPodWithPrio builds a fake Pod for testing (like BuildPod), but also sets the Pod’s PriorityClassName.
+func BuildPodWithPrio(
+	namespace, name, nodeName string,
+	phase v1.PodPhase,
+	req v1.ResourceList,
+	podGroupName string,
+	labels, annotations map[string]string,
+	priorityClassName string,
+) *v1.Pod {
+	pod := BuildPod(namespace, name, nodeName, phase, req, podGroupName, labels, annotations)
+	pod.Spec.PriorityClassName = priorityClassName
+	return pod
 }
