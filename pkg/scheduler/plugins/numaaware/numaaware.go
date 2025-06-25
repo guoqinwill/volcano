@@ -35,6 +35,7 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/framework"
 	"volcano.sh/volcano/pkg/scheduler/plugins/numaaware/policy"
 	"volcano.sh/volcano/pkg/scheduler/plugins/numaaware/provider/cpumanager"
+	"volcano.sh/volcano/pkg/scheduler/plugins/numaaware/provider/gpumanager"
 	"volcano.sh/volcano/pkg/scheduler/plugins/util"
 )
 
@@ -63,7 +64,7 @@ func New(arguments framework.Arguments) framework.Plugin {
 		taskBindNodeMap: make(map[api.TaskID]string),
 	}
 
-	plugin.hintProviders = append(plugin.hintProviders, cpumanager.NewProvider())
+	plugin.hintProviders = append(plugin.hintProviders, cpumanager.NewProvider(), gpumanager.NewGPUProvider())
 	return plugin
 }
 
