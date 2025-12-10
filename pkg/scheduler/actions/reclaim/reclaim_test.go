@@ -273,9 +273,10 @@ func TestReclaim(t *testing.T) {
 				util.BuildPodGroupWithPrio("pg-preemptor", "c1", "q2", 2, nil, schedulingv1beta1.PodGroupInqueue, "high-priority-no-preempt"),
 			},
 			Pods: []*v1.Pod{
-				util.BuildPod("c1", "victim-pod", "n1", v1.PodRunning, api.BuildResourceList("2", "2G"), "pg-victim", map[string]string{schedulingv1beta1.PodPreemptable: "true"}, make(map[string]string)),
-				util.BuildPodWithPrio("c1", "preemptor-task1-non-preemptable", "", v1.PodPending, api.BuildResourceList("2", "2G"), "pg-preemptor", make(map[string]string), make(map[string]string), "high-priority-no-preempt"),
-				util.BuildPodWithPrio("c1", "preemptor-task2-preemptable", "", v1.PodPending, api.BuildResourceList("2", "2G"), "pg-preemptor", make(map[string]string), make(map[string]string), "high-priority-can-preempt"),
+				util.BuildPod("c1", "victim-pod-no", "n1", v1.PodRunning, api.BuildResourceList("1", "1G"), "pg-victim", map[string]string{schedulingv1beta1.PodPreemptable: "false"}, make(map[string]string)),
+				util.BuildPod("c1", "victim-pod", "n1", v1.PodRunning, api.BuildResourceList("1", "1G"), "pg-victim", map[string]string{schedulingv1beta1.PodPreemptable: "true"}, make(map[string]string)),
+				util.BuildPodWithPreemptionPolicy("c1", "preemptor-task1-non-preemptable", "", v1.PodPending, api.BuildResourceList("1", "1G"), "pg-preemptor", make(map[string]string), make(map[string]string), v1.PreemptNever),
+				util.BuildPod("c1", "preemptor-task2-preemptable", "", v1.PodPending, api.BuildResourceList("1", "1G"), "pg-preemptor", make(map[string]string), make(map[string]string)),
 			},
 			Nodes: []*v1.Node{
 				util.BuildNode("n1", api.BuildResourceList("2", "2G", []api.ScalarResource{{Name: "pods", Value: "10"}}...), make(map[string]string)),
